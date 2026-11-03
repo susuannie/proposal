@@ -1,6 +1,6 @@
 # DESIGN.md — AI SOC Analyst Agent
 
-> 狀態：**Proposal 階段**（v0.7）。本文件從 Proposal 開始建立並隨開發持續更新。
+> 狀態：**Proposal 階段**（v0.8）。本文件從 Proposal 開始建立並隨開發持續更新。
 > 文中的文獻編號（例如 [3]）對應 [`docs/proposal.md`](docs/proposal.md) §6 References。
 > 標示「（規劃）」的項目尚未實作；標示「（待確認）」的項目需在下載資料或實作後驗證。
 
@@ -71,7 +71,7 @@ flowchart LR
     P <--> K["⑥ Domain Knowledge<br/>MITRE ATT&CK KB (Vector DB)<br/>NIST IR Playbooks / Rules"]
 
     D --> DS[("GUIDE CSV<br/>ExCyTIn Logs<br/>BOTS Logs")]
-    K --> KB[("ATT&CK STIX<br/>D3FEND<br/>SP 800-61")]
+    K --> KB[("ATT&CK STIX<br/>D3FEND<br/>SP 800-61 Rev. 3")]
 
     P --> R["⑦ Decision / Recommendation<br/>Evidence Fusion<br/>Confidence & Escalation"]
     R --> O["⑧ Output & Interaction<br/>Incident Report<br/>Dashboard"]
@@ -126,7 +126,7 @@ flowchart LR
 |---|---|---|
 | R1 攻擊鏈後段 | 出現 Exfiltration 或 Impact 戰術，或 GUIDE 的 `Category` 為 Ransomware | 資料可能已外洩或系統已受損 |
 | R2 憑證加橫向移動 | 同時出現 Credential Access 與 Lateral Movement | 攻擊者已取得憑證並在內網擴散 |
-| R3 入侵後站穩 | Initial Access 之後，又出現 Execution、Persistence 或 Privilege Escalation | 攻擊已從入口推進到控制主機 |
+| R3 入侵後站穩 | Initial Access 與 Execution、Persistence、Privilege Escalation 任一同時出現 | 攻擊已從入口推進到控制主機（GUIDE 的時間戳記有雜訊，因此不要求先後順序） |
 | R4 清除痕跡 | 出現 T1070（Indicator Removal，例如清除 log） | 刪除紀錄本身就是攻擊訊號，也會讓「查無紀錄」不可信（M1） |
 | R5 多階段攻擊 | 涵蓋 4 個以上不同的戰術 | 單一誤報很少同時觸發多個攻擊階段 |
 
@@ -385,3 +385,4 @@ python experiments/e0_profile_guide.py data/archive/GUIDE_Train.csv > experiment
 | v0.5 | 2026-11-03 | 新增 SOC 實務文獻 [24]–[26]，`IsSufficient` 的設計依據加入 [25] |
 | v0.6 | 2026-11-03 | 補上 ExCyTIn-Bench 官方 repo 與授權；資料切分改以 `OrgId` + `IncidentId` 為鍵；How to Run 加入資料檢查指令 |
 | v0.7 | 2026-11-03 | 列出高風險攻擊鏈規則 R1–R5；說明 `IsSufficient` 第 3 項在 GUIDE 上的檢查方式 |
+| v0.8 | 2026-11-03 | R3 改為不要求先後順序（GUIDE 時間戳記有雜訊） |

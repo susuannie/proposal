@@ -55,7 +55,7 @@ SOC 每天面對數以萬計的告警，其中只有一小部分對應真實攻�
 2. **LLM Agent 漏判率高**：LLM Agent 能主動查詢與解釋，但研究發現五種主流推理策略都漏判至少 40.4% 的攻擊告警，而且常在「查無紀錄」時過早結案 [3]；在資安調查 benchmark 上，最佳模型的 reward 只有 0.606 [4]；推理模型在資安分析上的進步也不如在程式與數學上明顯 [5]。
 3. **領域知識未被整合**：ATT&CK 對應方法多處理威脅情資文字 [6]，以攻擊鏈判斷嚴重度的方法則多為規則或攻擊圖 [10][11]，兩者都沒有與 ML 分級、LLM 推理整合。
 4. **缺少人機協作設計**：多數系統只輸出結論。研究顯示，自動化程度提高後分析師會降低監控、更依賴自動化結果，而系統性的驗證程序能減緩這個現象 [12]；實地部署也顯示，分析師是否採用 AI 的輸出，關鍵在於結果是否容易驗證 [26]。
-5. **評估難以重現**：AI 告警篩選研究普遍缺乏實際營運驗證與一致的評估方法 [8]；常用資料集也曾被發現有大量標註錯誤 [17]，ML 資安研究中的評估陷阱相當普遍 [16]。
+5. **評估難以重現**：AI 告警篩選研究普遍缺乏實際營運驗證與一致的評估方法 [8]；常用的 CICIDS2017 資料集被發現在流量建構與標註上有問題，超過 20% 的流量需要重建或重新標註 [17]；ML 資安研究中的評估陷阱相當普遍 [16]。
 
 ### 2.5 Innovation：本專題的不同之處
 
@@ -164,7 +164,7 @@ SOC 每天面對數以萬計的告警，其中只有一小部分對應真實攻�
 - **意義**：不要預設環境是乾淨的。「查不到可疑紀錄」不等於「沒有攻擊」，也可能是攻擊者刪了 log、或是查詢範圍不夠。
 - **證據**：
   - M-Trends 2026 [15]：2025 年攻擊者在環境中的全球潛伏時間中位數為 **14 天**（前一年 11 天）；網路間諜與北韓 IT 人員案件更長達 **122 天**。
-  - NIST Zero Trust Architecture [21] 把「假設已遭入侵」列為設計前提。
+  - NIST Zero Trust Architecture [21] 的基本假設是：企業網路內的資產應「隨時假設攻擊者已存在於網路中」，不因位於內部而被信任。
   - [3] 的實驗發現：LLM Agent **在查詢沒有回傳紀錄時，最容易把攻擊告警誤判為無害並結案**。
 - **對系統設計的影響**：Agent 遇到「查無紀錄」時不可直接判為 BP / FP，而是擴大查詢範圍（相關主機、帳號、時間窗）；用完工具呼叫預算仍無法確認，就升級給人工（Flowchart 的「資料足夠？」迴圈；Algorithm 1 第 05–09、18 行）。
 
@@ -238,9 +238,9 @@ SOC 每天面對數以萬計的告警，其中只有一小部分對應真實攻�
 | | 觀點 A：公開資料集是可重現研究的基礎 | 觀點 B：公開資料集與真實環境落差大，結果容易高估 |
 |---|---|---|
 | **主張** | 沒有公開資料就無法比較方法、重現結果；新一代資料集已更接近真實 | 資料集的標註錯誤、取樣偏差與不當切分，使論文中的高分無法反映實際表現 |
-| **最有力證據** | GUIDE [1] 是來自 6.1k 個組織的真實事件，標籤由真實分析師標註；ExCyTIn-Bench [4] 以自動生成題目提供可驗證的答案；AIP [7] 在 GUIDE 上補上排序標籤 | Engelen 等人 [17] 發現 CICIDS2017 在流量產生、流量建構、特徵擷取與標註上都有問題，修正後**超過 20% 的流量需要重建或重新標註**，且問題延續到 2018 版；Arp 等人 [16] 指出取樣偏差、資料洩漏等陷阱在頂級會議論文中普遍存在；[8] 將「評估方法」列為領域主要缺口 |
+| **最有力證據** | GUIDE [1] 是來自 6.1k 個組織的真實事件，標籤由真實分析師標註；ExCyTIn-Bench [4] 以自動生成題目提供可驗證的答案；AIP [7] 在 GUIDE 上補上排序標籤 | Engelen 等人 [17] 發現 CICIDS2017 在流量產生、流量建構、特徵擷取與標註上都有問題，修正後**超過 20% 的流量需要重建或重新標註**，對後繼的 2018 版初步檢查也發現流量建構錯誤；Arp 等人 [16] 分析近 10 年 30 篇頂級會議論文，指出取樣偏差、data snooping（訓練時用到實務上拿不到的資料，例如測試資料洩漏）等陷阱普遍存在；[8] 將「評估方法」列為領域主要缺口 |
 
-- **目前共識**：公開資料集仍然必要，但需要使用多個資料集交叉驗證、避免已知的評估陷阱（例如隨機切分造成資料洩漏），並在論文中明確說明限制。[16] 列出資料洩漏、取樣偏差等常見陷阱並提出對應建議；[8] 也提醒，在 benchmark 上得到的量化結果應視為上限。
+- **目前共識**：公開資料集仍然必要，但需要使用多個資料集交叉驗證、避免已知的評估陷阱（例如隨機切分造成資料洩漏），並在論文中明確說明限制。[16] 列出取樣偏差、data snooping 等常見陷阱並提出對應建議；[8] 也提醒，在 benchmark 上得到的量化結果應視為上限。
 - **尚未解決的問題**：
   1. 目前沒有同時具備「真實環境、完整原始 log、事件層級真實標籤」的公開端到端 SOC benchmark。GUIDE 有真實標籤但欄位匿名化，且依論文只涵蓋兩週；ExCyTIn 有完整 log 但只是單一受控環境。
   2. 隱私與商業機密限制了真實 SOC 資料的公開程度。
@@ -279,7 +279,7 @@ flowchart LR
     P <--> K["⑥ Domain Knowledge<br/>MITRE ATT&CK KB (Vector DB)<br/>NIST IR Playbooks / Rules"]
 
     D --> DS[("GUIDE CSV<br/>ExCyTIn Logs<br/>BOTS Logs")]
-    K --> KB[("ATT&CK STIX<br/>D3FEND<br/>SP 800-61")]
+    K --> KB[("ATT&CK STIX<br/>D3FEND<br/>SP 800-61 Rev. 3")]
 
     P --> R["⑦ Decision / Recommendation<br/>Evidence Fusion<br/>Confidence & Escalation"]
     R --> O["⑧ Output & Interaction<br/>Incident Report<br/>Dashboard"]
@@ -341,7 +341,7 @@ flowchart LR
 |---|---|---|
 | R1 攻擊鏈後段 | 出現 Exfiltration 或 Impact 戰術，或 GUIDE 的 `Category` 為 Ransomware | 資料可能已外洩或系統已受損 |
 | R2 憑證加橫向移動 | 同時出現 Credential Access 與 Lateral Movement | 攻擊者已取得憑證並在內網擴散 |
-| R3 入侵後站穩 | Initial Access 之後，又出現 Execution、Persistence 或 Privilege Escalation | 攻擊已從入口推進到控制主機 |
+| R3 入侵後站穩 | Initial Access 與 Execution、Persistence、Privilege Escalation 任一同時出現 | 攻擊已從入口推進到控制主機（GUIDE 的時間戳記有雜訊，因此不要求先後順序） |
 | R4 清除痕跡 | 出現 T1070（Indicator Removal，例如清除 log） | 刪除紀錄本身就是攻擊訊號，也會讓「查無紀錄」不可信（M1） |
 | R5 多階段攻擊 | 涵蓋 4 個以上不同的戰術 | 單一誤報很少同時觸發多個攻擊階段 |
 
@@ -595,19 +595,19 @@ Output: label, confidence conf, flag set flags
 
 [15] Google Cloud / Mandiant, "M-Trends 2026: Data, Insights, and Strategies From the Frontlines," 2026. https://cloud.google.com/blog/topics/threat-intelligence/m-trends-2026
 
-[16] D. Arp et al., "Dos and Don'ts of Machine Learning in Computer Security," in *Proc. 31st USENIX Security Symposium*, 2022, pp. 3971–3988.
+[16] D. Arp et al., "Dos and Don'ts of Machine Learning in Computer Security," in *Proc. 31st USENIX Security Symposium*, 2022, pp. 3971–3988. https://www.usenix.org/conference/usenixsecurity22/presentation/arp
 
-[17] G. Engelen, V. Rimmer, and W. Joosen, "Troubleshooting an Intrusion Detection Dataset: the CICIDS2017 Case Study," in *IEEE Security and Privacy Workshops (SPW)*, 2021.
+[17] G. Engelen, V. Rimmer, and W. Joosen, "Troubleshooting an Intrusion Detection Dataset: the CICIDS2017 Case Study," in *IEEE Security and Privacy Workshops (SPW)*, 2021, pp. 7–12. doi:10.1109/SPW53761.2021.00009
 
 [18] J. Tilbury and S. Flowerday, "Human-Automation Preferences in Security Operations Centers," in *MWAIS 2025 Proceedings*, 2025. https://aisel.aisnet.org/mwais2025/10
 
-[19] R. Sommer and V. Paxson, "Outside the Closed World: On Using Machine Learning for Network Intrusion Detection," in *Proc. IEEE Symposium on Security and Privacy*, 2010.
+[19] R. Sommer and V. Paxson, "Outside the Closed World: On Using Machine Learning for Network Intrusion Detection," in *Proc. IEEE Symposium on Security and Privacy*, 2010. https://www.icir.org/robin/papers/oakland10-ml.pdf
 
-[20] D. J. Bianco, "The Pyramid of Pain," 2013. https://detect-respond.blogspot.com/2013/03/the-pyramid-of-pain.html
+[20] D. J. Bianco, "The Pyramid of Pain," Mar. 2013 (updated Jan. 2014). https://detect-respond.blogspot.com/2013/03/the-pyramid-of-pain.html
 
 [21] S. Rose, O. Borchert, S. Mitchell, and S. Connelly, "Zero Trust Architecture," NIST SP 800-207, 2020. doi:10.6028/NIST.SP.800-207
 
-[22] B. E. Strom et al., "MITRE ATT&CK: Design and Philosophy," The MITRE Corporation, 2018.
+[22] B. E. Strom, A. Applebaum, D. P. Miller, K. C. Nickels, A. G. Pennington, and C. B. Thomas, "MITRE ATT&CK: Design and Philosophy," The MITRE Corporation, Jul. 2018 (revised Mar. 2020). https://attack.mitre.org/docs/ATTACK_Design_and_Philosophy_March_2020.pdf
 
 [23] 國家安全局，〈2025 年中共對我國關鍵基礎設施網駭威脅分析〉，2026 年 1 月，頁 1。https://www.nsb.gov.tw/zh/assets/documents/%E6%96%B0%E8%81%9E%E7%A8%BF/9473ea89-55e8-460d-87c1-65bc51085d80.pdf
 
@@ -618,4 +618,4 @@ Output: label, confidence conf, flag set flags
 [26] K. Banstola, F. Al Faisal, et al., "It Is Not Yet Another Tool: Creating and Deploying an Agentic AI Companion in a Security Operations Center," arXiv:2609.06250, 2026. https://arxiv.org/abs/2609.06250
 
 > 引用格式採 IEEE。
-> [14]、[15] 為產業報告，數字取自官方頁面與新聞稿；[19]–[22] 為領域經典文獻，用於支撐核心思維模式。
+> [14]、[15] 為產業報告，數字取自官方頁面與新聞稿；[16]、[17]、[19]–[22] 為領域經典文獻，用於支撐核心思維模式與專業爭論，相關說法皆已對照原文確認。
