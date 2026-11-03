@@ -8,7 +8,7 @@
 
 ## 1. Abstract
 
-**【A. Attention Getter】** 資安攻擊的規模與代價持續攀升。依國安局報告，2025 年中共對我國關鍵基礎設施的網路侵擾平均每日約 263 萬次，較 2024 年增加 6% [23]；IBM 2025 年報告指出，資料外洩的全球平均成本為 444 萬美元，從發生到偵測、圍堵平均需要 241 天 [14]。站在第一線的資安維運中心（SOC）每天面對數以萬計的告警，其中只有一小部分對應真實攻擊 [2]。
+**【A. Attention Getter】** 資安攻擊的規模與代價持續攀升。依國安局報告，2025 年中共對我國關鍵基礎設施的網路侵擾平均每日約 263 萬次，較 2024 年增加 6% [23]；IBM 2026 年報告指出，資料外洩的全球平均成本創新高，達 499 萬美元（較前一年增加 12%），從發生到偵測、圍堵平均需要 247 天 [14]。站在第一線的資安維運中心（SOC）每天面對數以萬計的告警，其中只有一小部分對應真實攻擊 [2]。
 
 **【B. But】** 大量誤報與良性觸發造成告警疲勞，讓分析師可能漏看真正的威脅 [8][24]。現有解法各有限制：ML 分級模型可大規模部署 [1][7]，但較少說明告警在攻擊鏈中的意義；LLM Agent 能調查與解釋，但近期研究發現，五種主流 LLM 推理策略都漏判至少 40.4% 的攻擊告警 [3]，在資安調查 benchmark 上最佳模型也只達到 0.606 的 reward [4]。此外，自動化程度提高會讓分析師降低監控、更依賴自動化結果 [12]。
 
@@ -26,7 +26,7 @@
 
 ### 2.1 Attention Getter：攻擊越來越多，偵測越來越慢
 
-網路攻擊已是日常的國安與經濟威脅。國安局報告指出，2025 年中共對我國關鍵基礎設施的網路侵擾平均每日約 263 萬次，較 2024 年增加 6% [23]。攻擊者一旦入侵成功，往往不會立即被發現：Mandiant M-Trends 2026 報告指出，2025 年攻擊者在受害環境中的全球潛伏時間中位數為 14 天，比前一年的 11 天更長，網路間諜與北韓 IT 人員案件更長達 122 天 [15]。IBM 2025 年報告則顯示，資料外洩的全球平均成本為 444 萬美元，從發生到偵測、圍堵平均需要 241 天；而大量使用 AI 與自動化的組織平均可節省 190 萬美元，並將處理週期縮短 80 天 [14]。
+網路攻擊已是日常的國安與經濟威脅。國安局報告指出，2025 年中共對我國關鍵基礎設施的網路侵擾平均每日約 263 萬次，較 2024 年增加 6% [23]。攻擊者一旦入侵成功，往往不會立即被發現：Mandiant M-Trends 2026 報告指出，2025 年攻擊者在受害環境中的全球潛伏時間中位數為 14 天，比前一年的 11 天更長，網路間諜與北韓 IT 人員案件更長達 122 天 [15]。IBM 2026 年報告則顯示，資料外洩的全球平均成本創新高，達 499 萬美元（較前一年增加 12%），從發生到偵測、圍堵平均需要 247 天；而大量使用 AI 與自動化的組織平均可節省 193 萬美元，並將處理週期縮短 65 天 [14]。
 
 這些數字指向同一個結論：**偵測和回應的速度直接決定損失大小，而 AI 有機會在其中發揮關鍵作用。**
 
@@ -38,6 +38,8 @@
 - **Tier-2 / Tier-3** 負責深入調查、圍堵與復原。
 
 分級時，分析師需要查詢相關 log、確認帳號與主機的上下文，並將告警對應到 MITRE ATT&CK 等攻擊知識框架，判斷攻擊推進到哪個階段 [10][22]。處置流程則依循 NIST SP 800-61 Rev. 3 等事件應變標準 [13]。
+
+**與 AIoT 的關聯**：企業網路中除了電腦與雲端服務，還有大量 IoT 與工控（OT）裝置，例如網路攝影機、感測器、閘道器與 PLC。這類裝置數量多、運算資源有限，通常無法安裝端點防護軟體，往往只能透過網路、身分與裝置管理層的告警間接偵測，因此同樣匯入 SOC 等待分級，並加重告警負擔。本專題的 Agent 以「事件」為單位整合不同來源的告警，並以 ATT&CK 技術推理攻擊鏈，設計上不限於特定裝置類型；ATT&CK 另有 ICS 矩陣，可延伸到工控與 IoT 情境。GUIDE 的證據也包含裝置層級的欄位（`DeviceId`、`DeviceName`），可作為分析裝置相關事件的基礎。
 
 ### 2.3 Problem：分級是瓶頸
 
@@ -90,7 +92,7 @@ SOC 每天面對數以萬計的告警，其中只有一小部分對應真實攻�
 
 **(4) 領域知識檢索（RAG）。** TechniqueRAG [6] 以 retriever + 指令微調 LLM + 零樣本重排序，將威脅情資文字標註為 ATT&CK 技術，只需少量標註資料即達到 state-of-the-art。不過它處理的是**威脅情資報告的文字**，而非 SOC 告警與 log；作者也指出模型很少輸出超過兩個技術，多標籤情境的召回率偏低。
 
-**(5) LLM Agent 的實地部署。** Banstola 等人 [26] 在一所大學的 SOC 進行 14 個月的實地研究，與分析師一起設計並部署 LLM Agent；在最後 4 個月的使用期間，超過 90% 的情況下分析師沿用了 Agent 的輸出來撰寫結案報告，估計節省 30–50% 的處理時間。他們發現**影響採用最大的不是準確率，而是輸出是否容易驗證**；分析師能自行調整 Agent 的行為後，也更信任它的結果。
+**(5) LLM Agent 的實地部署。** Banstola 等人 [26] 在一所大學的 SOC 進行 14 個月的實地研究，與分析師一起設計並部署 LLM Agent；在最後 4 個月的使用期間，超過 90% 的情況下分析師沿用了 Agent 的輸出來撰寫結案報告；對最常使用的 3 位分析師，估計節省 30–50% 的處理時間（對照為分析師自陳的手動處理時間）。他們發現**影響採用最大的不是準確率，而是輸出是否容易驗證**；分析師能自行調整 Agent 的行為後，也更信任它的結果。
 
 ### 3.2 Domain Know-how
 
@@ -108,7 +110,7 @@ SOC 每天面對數以萬計的告警，其中只有一小部分對應真實攻�
 
 | Ref. | Year | Problem | AI Method | Domain Knowledge | Dataset | Findings | Limitation |
 |---|---|---|---|---|---|---|---|
-| [1] | 2024 | SOC 事件的調查、分級、處置建議 | ML 架構（CGR），整合於 Defender XDR | SOC triage（TP/BP/FP）、處置動作 | GUIDE（1,300 萬證據、160 萬告警、100 萬事件、6.1k 組織、兩週，公開） | 已部署至數千客戶、產生數百萬筆建議；GUIDE 上分級 macro-F1 0.87；內部評估（數十萬起未見過的事件）分級 precision 87%、recall 41% | 作者自述：未與其他模型或商用產品比較；只能針對既有偵測器給建議，無法處理 zero-day 或未監控的攻擊途徑 |
+| [1] | 2024 | SOC 事件的調查、分級、處置建議 | ML 架構（CGR），整合於 Defender XDR | SOC triage（TP/BP/FP）、處置動作 | GUIDE（1,300 萬證據、160 萬告警、100 萬事件、6.1k 組織、兩週，公開） | 已部署至數千客戶、產生數百萬筆建議；以內部資料離線評估，分級跨區域平均 macro-F1 0.87、precision 0.87、recall 0.86；在 90% precision 的門檻下，分級模型可覆蓋約 41% 的事件（GUIDE 本身未報告分級分數） | 作者自述：未與其他模型或商用產品比較；只能針對既有偵測器給建議，無法處理 zero-day 或未監控的攻擊途徑 |
 | [2] | 2025 | 告警量大、單一 LLM 雜訊下不穩且不透明 | 多 Agent LLM（行為分析、證據蒐集、推理） | SOC 調查流程、分析師逐步行動 | 自建並公開的 SOC 調查軌跡（10 餘個真實企業情境、數千筆） | 相較使用工具的單 Agent：可行動告警 F1 0.66 → 0.78，誤報率 24.9% → 14.2% | 作者自述：情境數有限；對分布偏移、prompt injection、工具回傳不完整敏感。成本：token 約 5.7 倍、每告警 152 秒（約 3.4 倍） |
 | [3] | 2026 | LLM Agent 的推理策略如何影響證據蒐集與結案時機 | 5 種 tool-using LLM 策略；提出 AIDA（多 Agent 質疑 + Judge） | 告警分級、SIEM 調查 | ALERT-BENCH：以 AIT-LDSv2 telemetry 在 SIEM 重播；1,247 筆告警，來自四天的多階段攻擊情境 | 現有方法漏判 ≥ 40.4%，且查無紀錄時最易誤判結案；AIDA F1 0.958、漏判率 3.1%，升級 18.4%；每告警約 3.4 萬 token、12.7 秒、0.109 美元（GPT-4.1） | 作者自述：資料僅來自 AIT 同一資料系列，未在獨立收集的 SOC 資料上驗證；缺乏組織脈絡（帳號角色、資產用途）時部分事件仍無法判斷；未評估分析師實際使用情形；預印本 |
 | [4] | 2026 | 缺乏評估 LLM Agent 威脅調查能力的 benchmark | LLM Agent + SQL 工具；由調查圖自動生成題目 | 資安 log、調查圖、偵測邏輯 | 單一受控 Azure 租戶（虛構公司）：57 張 log 表、8 條真實攻擊鏈、7,542 題 | 最佳模型 reward 0.606；改用完整資料庫降至 0.248；移除告警表後表現明顯下降 | 依內文整理（無獨立限制章節）：僅一個租戶，良性雜訊為模擬產生；題目由 LLM 依告警圖生成，偏重告警表 |
@@ -123,7 +125,7 @@ SOC 每天面對數以萬計的告警，其中只有一小部分對應真實攻�
 | [13] | 2025 | 事件應變指引需與 CSF 2.0 整合 | — | 事件應變生命週期（CSF 2.0 六大功能） | — | 取代 2012 年 Rev. 2；建議事件須先分級與驗證（RS.MA-02），且不應依先到先處理 | 以 CSF 成果與建議呈現的高階指引，不提供告警層級的判斷規則或門檻 |
 | [24] | 2022 | 安全工具誤報率高，但「誤報」的定義含糊 | 非 AI 方法：問卷（n = 20）＋半結構式訪談（n = 21） | 分析師如何驗證告警、誤報與 benign trigger 的區別 | 7 個 SOC 的實務人員，多數位於英國 | 多數「誤報」其實是 benign trigger，應與真正的誤報分開衡量；告警的主要問題是不可靠、無法客製、缺乏解釋與脈絡；提出 REACT 模型 | 作者自述：樣本小、僅 7 個 SOC 且多在英國與歐洲；非隨機招募；自陳資料 |
 | [25] | 2025 | Tier-1 分析師實際如何調查告警，所知甚少 | 非 AI 方法：兩次 think-aloud 實驗，並開發調查輔助系統（AISS） | Tier-1 調查流程、會蒐集哪些資訊 | 一家商業 SOC：5 名分析師 400 次調查；另 4 名分析師使用 AISS 進行 36 次調查 | 調查流程因人、因告警類型而異；需要升級的告警會蒐集更多種類的資訊；AISS 讓分析師以更少動作取得更多相關資訊 | 作者自述：僅一家 SOC，受試者多為實習的初階分析師；同一攻擊被重複調查 |
-| [26] | 2026 | LLM Agent 在真實 SOC 中是否會被採用 | LLM ReAct Agent，與分析師共同設計 | SOC 工單處理流程、分析師的信任與採用 | 一所大學 SOC 的 14 個月實地研究，最後 4 個月由分析師實際使用 | 超過 90% 的情況下輸出被用於結案報告；可驗證性是採用的關鍵；估計節省 30–50% 處理時間 | 作者自述：僅一所大學 SOC；時間比較的對照為分析師自陳的手動處理時間；預印本 |
+| [26] | 2026 | LLM Agent 在真實 SOC 中是否會被採用 | LLM ReAct Agent，與分析師共同設計 | SOC 工單處理流程、分析師的信任與採用 | 一所大學 SOC 的 14 個月實地研究，最後 4 個月由分析師實際使用 | 超過 90% 的情況下輸出被用於結案報告；可驗證性是採用的關鍵；最常使用的 3 位分析師估計節省 30–50% 處理時間 | 作者自述：僅一所大學 SOC；時間比較的對照為分析師自陳的手動處理時間；預印本 |
 
 ### 3.4 Research Gap
 
@@ -179,7 +181,7 @@ SOC 每天面對數以萬計的告警，其中只有一小部分對應真實攻�
 
 - **意義**：漏掉一個真實攻擊（False Negative）的代價遠高於多看一個誤報；但誤報太多會造成告警疲勞，反過來讓分析師漏看真正的攻擊。兩者都要管理，不能只看準確率。
 - **證據**：
-  - IBM 2025 [14]：資料外洩的全球平均成本為 **444 萬美元**，從發生到偵測、圍堵的平均週期為 **241 天**；大量使用 AI 與自動化的組織平均節省 **190 萬美元**、週期縮短 **80 天**。
+  - IBM 2026 [14]：資料外洩的全球平均成本為 **499 萬美元**，從發生到偵測、圍堵的平均週期為 **247 天**；大量使用 AI 與自動化的組織平均節省 **193 萬美元**、週期縮短 **65 天**。
   - [8] 指出告警疲勞是 SOC 的結構性問題；[3] 顯示降低漏判（40.4% → 3.1%）需要付出 18.4% 升級率的代價。
 - **對系統設計的影響**：TP 漏判率是首要指標（NFR2）；Algorithm 2 第 06–08 行在高風險情境下偏向升級；實驗同時報告「漏判率」與「升級率」，明確呈現取捨。
 
@@ -208,7 +210,7 @@ SOC 每天面對數以萬計的告警，其中只有一小部分對應真實攻�
 | | 觀點 A：應走向全自動 AI SOC | 觀點 B：AI 只能輔助，人必須在迴圈內 |
 |---|---|---|
 | **主張** | 告警量已超過人力負荷，只有自動化才能跟上 | 現階段 AI 在資安推理上仍不可靠，全自動會放大錯誤 |
-| **最有力證據** | IBM 2025 [14]：大量使用 AI 與自動化的組織平均節省 190 萬美元、週期縮短 80 天；Microsoft 已在大規模環境部署 ML 分級與排序 [1][7] | [3]：五種 LLM Agent 策略都漏判 ≥ 40.4% 的攻擊告警；[4] 最佳模型 reward 只有 0.606；[5] 指出 LLM 遠未達到 benchmark 上限；[12] 顯示自動化會造成分析師自滿 |
+| **最有力證據** | IBM 2026 [14]：大量使用 AI 與自動化的組織平均節省 193 萬美元、週期縮短 65 天；Microsoft 已在大規模環境部署 ML 分級與排序 [1][7] | [3]：五種 LLM Agent 策略都漏判 ≥ 40.4% 的攻擊告警；[4] 最佳模型 reward 只有 0.606；[5] 指出 LLM 遠未達到 benchmark 上限；[12] 顯示自動化會造成分析師自滿 |
 
 - **目前共識**：由 AI 處理大量、低風險、高信心的告警，高風險或不確定的事件交給人判斷；AI 的價值在於「縮短調查時間、提供依據」，而非取代決策。
 - **尚未解決的問題**：
@@ -353,7 +355,7 @@ flowchart LR
 |---|---|---|
 | 1 | ② | 分析師輸入 Incident #12345 |
 | 2 | ③④ | Planner 取得事件的 6 筆告警與 20 筆證據，涵蓋 2 個帳號、1 台主機 |
-| 3 | ⑤ | 分級模型輸出 P(TP)=0.42、P(BP)=0.38、P(FP)=0.20；SHAP 顯示「Tactic 覆蓋數」與「Detector 歷史誤報率」影響最大 |
+| 3 | ⑤ | 分級模型輸出 P(TP)=0.58、P(BP)=0.30、P(FP)=0.12；SHAP 顯示「Tactic 覆蓋數」與「Detector 歷史誤報率」影響最大 |
 | 4 | ⑥ | 對應到 Credential Access 與 Lateral Movement，攻擊鏈已推進到中段 |
 | 5 | ③ | LLM 整合證據，判斷為 TP，但指出缺少該帳號的登入紀錄 |
 | 6 | ⑦ | ML 與 LLM 都偏向 TP 但信心不高、缺少登入紀錄，且攻擊鏈已到中段 → 標記「需人工複核」 |
@@ -559,11 +561,11 @@ Output: label, confidence conf, flag set flags
 
 [3] S. A. Tsegai, A. Kantchelian, D. Yao, and P. Gao, "From Investigation Failures to Reliable SOC Agents: Understanding and Improving LLM-Based Alert Triage," arXiv:2610.10608, 2026. https://arxiv.org/abs/2610.10608
 
-[4] Y. Wu et al., "ExCyTIn-Bench: Evaluating LLM Agents on Cyber Threat Investigation," in *Proc. ICML*, 2026; arXiv:2507.14201, 2025. https://arxiv.org/abs/2507.14201
+[4] Y. Wu et al., "ExCyTIn-Bench: Evaluating LLM Agents on Cyber Threat Investigation," arXiv:2507.14201, 2025 (v3, May 2026). https://arxiv.org/abs/2507.14201
 
 [5] L. Deason et al., "CyberSOCEval: Benchmarking LLMs Capabilities for Malware Analysis and Threat Intelligence Reasoning," arXiv:2509.20166, 2025. https://arxiv.org/abs/2509.20166
 
-[6] A. Lekssays, U. Shukla, H. T. Sencar, and M. R. Parvez, "TechniqueRAG: Retrieval Augmented Generation for Adversarial Technique Annotation in Cyber Threat Intelligence Text," in *Findings of ACL*, 2025; arXiv:2505.11988. https://arxiv.org/abs/2505.11988
+[6] A. Lekssays, U. Shukla, H. T. Sencar, and M. R. Parvez, "TechniqueRAG: Retrieval Augmented Generation for Adversarial Technique Annotation in Cyber Threat Intelligence Text," arXiv:2505.11988, 2025. https://arxiv.org/abs/2505.11988
 
 [7] S. Freitas, A. Gharib, and M. Magenheim, "Adaptive Incident Prioritization for Security Operations at Scale," arXiv:2607.16963, 2026. https://arxiv.org/abs/2607.16963
 
@@ -579,7 +581,7 @@ Output: label, confidence conf, flag set flags
 
 [13] NIST, "Incident Response Recommendations and Considerations for Cybersecurity Risk Management: A CSF 2.0 Community Profile," NIST SP 800-61 Rev. 3, Apr. 2025. doi:10.6028/NIST.SP.800-61r3
 
-[14] IBM, "Cost of a Data Breach Report 2025," IBM Security, Jul. 2025. https://www.ibm.com/reports/data-breach
+[14] IBM and Ponemon Institute, "Cost of a Data Breach Report 2026," IBM Security, Jul. 2026. https://www.ibm.com/reports/data-breach
 
 [15] Google Cloud / Mandiant, "M-Trends 2026: Data, Insights, and Strategies From the Frontlines," 2026. https://cloud.google.com/blog/topics/threat-intelligence/m-trends-2026
 
