@@ -39,7 +39,7 @@
 
 分級時，分析師需要查詢相關 log、確認帳號與主機的上下文，並將告警對應到 MITRE ATT&CK 等攻擊知識框架，判斷攻擊推進到哪個階段 [10][22]。處置流程則依循 NIST SP 800-61 Rev. 3 等事件應變標準 [13]。
 
-**與 AIoT 的關聯**：企業網路中除了電腦與雲端服務，還有大量 IoT 與工控（OT）裝置，例如網路攝影機、感測器、閘道器與 PLC。這類裝置數量多、運算資源有限，通常無法安裝端點防護軟體，往往只能透過網路、身分與裝置管理層的告警間接偵測，因此同樣匯入 SOC 等待分級，並加重告警負擔。本專題的 Agent 以「事件」為單位整合不同來源的告警，並以 ATT&CK 技術推理攻擊鏈，設計上不限於特定裝置類型；ATT&CK 另有 ICS 矩陣，可延伸到工控與 IoT 情境。GUIDE 的證據也包含裝置層級的欄位（`DeviceId`、`DeviceName`），可作為分析裝置相關事件的基礎。
+**與 AIoT 的關聯**：企業網路中的 IoT 與工控（OT）裝置多半無法安裝端點防護，其異常通常透過網路與身分層的告警進入 SOC，同樣需要分級。本專題以事件為單位整合不同來源的告警，並以 ATT&CK 推理攻擊鏈，不限於特定裝置類型；ATT&CK 另有 ICS 矩陣，可延伸至工控情境。
 
 ### 2.3 Problem：分級是瓶頸
 
@@ -365,10 +365,10 @@ flowchart LR
 |---|---|---|
 | 1 | ② | 分析師輸入 Incident #12345 |
 | 2 | ③④ | Planner 取得事件的 6 筆告警與 20 筆證據，涵蓋 2 個帳號、1 台主機 |
-| 3 | ⑤ | 分級模型輸出 P(TP)=0.58、P(BP)=0.30、P(FP)=0.12；SHAP 顯示「Tactic 覆蓋數」與「Detector 歷史誤報率」影響最大 |
+| 3 | ⑤ | 分級模型輸出 P(TP)=0.46、P(BP)=0.45、P(FP)=0.09，TP 與 BP 幾乎打平；SHAP 顯示「Tactic 覆蓋數」與「Detector 歷史誤報率」影響最大 |
 | 4 | ⑥ | 對應到 Credential Access 與 Lateral Movement，攻擊鏈已推進到中段 |
-| 5 | ③ | LLM 整合證據，判斷為 TP，但指出缺少該帳號的登入紀錄 |
-| 6 | ⑦ | ML 與 LLM 都偏向 TP 但信心不高、缺少登入紀錄，且攻擊鏈已到中段 → 標記「需人工複核」 |
+| 5 | ③ | LLM 整合證據，判斷為 TP、信心「中」，但指出缺少該帳號的登入紀錄 |
+| 6 | ⑦ | 依 Algorithm 2 融合（示意 w_ml = w_llm = 0.5）：(0.46, 0.45, 0.09) 與 LLM 的 (0.7, 0.15, 0.15) 加權得 P(TP)=0.58、P(BP)=0.30、P(FP)=0.12。信心 0.58 低於門檻 τ，又觸發 R2（憑證加橫向移動），且缺少登入紀錄、證據不足 → 標記「需人工複核」 |
 | 7 | ⑧ | 輸出報告：建議重設帳號密碼、檢查橫向移動目標主機，並說明為何需要人工複核 |
 
 ### 5.2 Flowchart
@@ -571,11 +571,11 @@ Output: label, confidence conf, flag set flags
 
 [3] S. A. Tsegai, A. Kantchelian, D. Yao, and P. Gao, "From Investigation Failures to Reliable SOC Agents: Understanding and Improving LLM-Based Alert Triage," arXiv:2610.10608, 2026. https://arxiv.org/abs/2610.10608
 
-[4] Y. Wu et al., "ExCyTIn-Bench: Evaluating LLM Agents on Cyber Threat Investigation," arXiv:2507.14201, 2025 (v3, May 2026). https://arxiv.org/abs/2507.14201
+[4] Y. Wu et al., "ExCyTIn-Bench: Evaluating LLM Agents on Cyber Threat Investigation," in *Proc. ICML*, 2026; arXiv:2507.14201, 2025. https://arxiv.org/abs/2507.14201
 
 [5] L. Deason et al., "CyberSOCEval: Benchmarking LLMs Capabilities for Malware Analysis and Threat Intelligence Reasoning," arXiv:2509.20166, 2025. https://arxiv.org/abs/2509.20166
 
-[6] A. Lekssays, U. Shukla, H. T. Sencar, and M. R. Parvez, "TechniqueRAG: Retrieval Augmented Generation for Adversarial Technique Annotation in Cyber Threat Intelligence Text," arXiv:2505.11988, 2025. https://arxiv.org/abs/2505.11988
+[6] A. Lekssays, U. Shukla, H. T. Sencar, and M. R. Parvez, "TechniqueRAG: Retrieval Augmented Generation for Adversarial Technique Annotation in Cyber Threat Intelligence Text," in *Findings of ACL*, 2025; arXiv:2505.11988. https://arxiv.org/abs/2505.11988
 
 [7] S. Freitas, A. Gharib, and M. Magenheim, "Adaptive Incident Prioritization for Security Operations at Scale," arXiv:2607.16963, 2026. https://arxiv.org/abs/2607.16963
 
@@ -591,7 +591,7 @@ Output: label, confidence conf, flag set flags
 
 [13] NIST, "Incident Response Recommendations and Considerations for Cybersecurity Risk Management: A CSF 2.0 Community Profile," NIST SP 800-61 Rev. 3, Apr. 2025. doi:10.6028/NIST.SP.800-61r3
 
-[14] IBM and Ponemon Institute, "Cost of a Data Breach Report 2026," IBM Security, Jul. 2026. https://www.ibm.com/reports/data-breach
+[14] IBM, "Cost of a Data Breach Report 2026," IBM Security, 2026. https://www.ibm.com/reports/data-breach
 
 [15] Google Cloud / Mandiant, "M-Trends 2026: Data, Insights, and Strategies From the Frontlines," 2026. https://cloud.google.com/blog/topics/threat-intelligence/m-trends-2026
 
@@ -618,4 +618,4 @@ Output: label, confidence conf, flag set flags
 [26] K. Banstola, F. Al Faisal, et al., "It Is Not Yet Another Tool: Creating and Deploying an Agentic AI Companion in a Security Operations Center," arXiv:2609.06250, 2026. https://arxiv.org/abs/2609.06250
 
 > 引用格式採 IEEE。
-> [14]、[15] 為產業報告，數字取自官方頁面與新聞稿；[16]、[17]、[19]–[22] 為領域經典文獻，用於支撐核心思維模式與專業爭論，相關說法皆已對照原文確認。
+> [14]、[15] 為產業報告。[14] 的平均成本（499 萬美元、增加 12%）與 AI 節省金額（193 萬美元）取自 IBM 官方頁面，247 天與 65 天取自多家媒體對 2026 年報告的引述；[15] 的數字取自官方頁面與新聞稿；[16]、[17]、[19]–[22] 為領域經典文獻，用於支撐核心思維模式與專業爭論，相關說法皆已對照原文確認。
