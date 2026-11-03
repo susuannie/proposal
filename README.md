@@ -20,7 +20,7 @@ Agent 針對資安事件提供 TP / BP / FP 分級、ATT&CK 攻擊鏈對應與�
 ① 分析師 / 告警佇列 → ② 事件輸入 → ③ Planner & Reasoning Agent
    ↔ ④ 證據取得（事件資料、Log 查詢）
    ↔ ⑤ 分析引擎（分級模型、SHAP、相似事件）
-   ↔ ⑥ 領域知識（MITRE ATT&CK、NIST SP 800-61、D3FEND）
+   ↔ ⑥ 領域知識（MITRE ATT&CK、NIST SP 800-61 Rev. 3、D3FEND）
 → ⑦ 決策融合與升級判斷 → ⑧ 事件報告 / Dashboard
 ```
 
