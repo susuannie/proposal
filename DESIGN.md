@@ -1,6 +1,6 @@
 # DESIGN.md — AI SOC Analyst Agent
 
-> 狀態：**Proposal 階段**（v0.6）。本文件從 Proposal 開始建立並隨開發持續更新。
+> 狀態：**Proposal 階段**（v0.7）。本文件從 Proposal 開始建立並隨開發持續更新。
 > 文中的文獻編號（例如 [3]）對應 [`docs/proposal.md`](docs/proposal.md) §6 References。
 > 標示「（規劃）」的項目尚未實作；標示「（待確認）」的項目需在下載資料或實作後驗證。
 
@@ -120,7 +120,17 @@ flowchart LR
 ### ⑥ Domain Knowledge Integration
 - **MITRE ATT&CK KB**：將 ATT&CK STIX 資料（Technique 描述、偵測方式、緩解措施）切塊後存入 Vector DB（Chroma），供 RAG 檢索。
 - **事件應變流程**：NIST SP 800-61 Rev. 3（事件應變）與 MITRE D3FEND（防禦技術）整理為處置 playbook。
-- **領域規則**：例如「Initial Access + Credential Access + Exfiltration 同時出現 → 強制升級」。
+- **高風險攻擊鏈規則**（`Rules(T)`，觸發時標記 `high_risk`，見 Algorithm 2 第 06–08 行）：依據事件中出現的 ATT&CK 戰術與技術判斷，攻擊鏈越後段風險越高 [10][11]：
+
+| 規則 | 條件（同一事件內） | 理由 |
+|---|---|---|
+| R1 攻擊鏈後段 | 出現 Exfiltration 或 Impact 戰術，或 GUIDE 的 `Category` 為 Ransomware | 資料可能已外洩或系統已受損 |
+| R2 憑證加橫向移動 | 同時出現 Credential Access 與 Lateral Movement | 攻擊者已取得憑證並在內網擴散 |
+| R3 入侵後站穩 | Initial Access 之後，又出現 Execution、Persistence 或 Privilege Escalation | 攻擊已從入口推進到控制主機 |
+| R4 清除痕跡 | 出現 T1070（Indicator Removal，例如清除 log） | 刪除紀錄本身就是攻擊訊號，也會讓「查無紀錄」不可信（M1） |
+| R5 多階段攻擊 | 涵蓋 4 個以上不同的戰術 | 單一誤報很少同時觸發多個攻擊階段 |
+
+規則只負責「標記高風險、偏向升級」，不單獨決定分級；R5 的門檻在驗證集上確認。
 
 ### ⑦ Decision / Recommendation
 - **Evidence Fusion**：整合 ML 機率、LLM 推理、規則判斷，產生最終分級。
@@ -306,7 +316,7 @@ Output: label, confidence conf, flag set flags
 2. 事件涉及的主要實體（帳號、主機）都至少有一筆上下文紀錄，例如登入、程序或網路活動。
 3. 任一查詢回傳空結果時，必須確認同一資料來源在該時間窗內仍有其他紀錄，也就是 log 沒有中斷；無法確認時視為證據不足，而不是「沒有可疑活動」。
 
-自然語言調查問題沒有告警清單，第 1 項改為「問題涉及的每個實體都已查詢過」。
+自然語言調查問題沒有告警清單，第 1 項改為「問題涉及的每個實體都已查詢過」。GUIDE 沒有原始 log，因此在 GUIDE 上第 3 項改為：檢查每筆告警的證據列是否齊全，並把代表「無此實體」的固定 ID 視為缺值，而不是一個真的實體（見 DESIGN.md §5 的待確認項目）。
 
 **`OneHotWithConfidence` 的轉換方式**：LLM 自行回報的數值信心通常不可靠，因此只要求 LLM 回報「低／中／高」三級信心，分別對應 c = 0.5、0.7、0.9（實際數值在驗證集上調整）。LLM 判斷的類別得到 c，其餘兩類平分 1 − c。例如 LLM 判斷為 TP、信心「中」，則 q = (0.7, 0.15, 0.15)。
 
@@ -374,3 +384,4 @@ python experiments/e0_profile_guide.py data/archive/GUIDE_Train.csv > experiment
 | v0.4 | 2026-11-03 | 定義 `IsSufficient(E)` 與 `OneHotWithConfidence`；補充 Planner 決策點、回饋的用途、LLM 成本估算與時程風險 |
 | v0.5 | 2026-11-03 | 新增 SOC 實務文獻 [24]–[26]，`IsSufficient` 的設計依據加入 [25] |
 | v0.6 | 2026-11-03 | 補上 ExCyTIn-Bench 官方 repo 與授權；資料切分改以 `OrgId` + `IncidentId` 為鍵；How to Run 加入資料檢查指令 |
+| v0.7 | 2026-11-03 | 列出高風險攻擊鏈規則 R1–R5；說明 `IsSufficient` 第 3 項在 GUIDE 上的檢查方式 |
